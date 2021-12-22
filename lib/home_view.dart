@@ -1,6 +1,7 @@
 import 'package:advance/create_todo_view.dart';
 import 'package:advance/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
 //stl => stateless widget
@@ -106,61 +107,63 @@ class _HomeViewState extends State<HomeView> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context){
-            return  CreateTodoView();
+          Navigator.push(context, MaterialPageRoute(builder: (context) {
+            return CreateTodoView();
           }));
         },
         child: const Icon(Icons.add),
         backgroundColor: const Color.fromRGBO(37, 43, 103, 1),
       ),
-      body: ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemBuilder: (context, index) {
-            return TaskCardWidget(
-              dateTime: selectedItem == 'todo' 
-              ? unCompletedData [index]['date_time']
-              : completedData[index]['date_time'],
-
-              //title
-              title: selectedItem == 'todo' 
-              ? unCompletedData [index]['title']
-              : completedData[index]['title'],
-
-              //description
-              description: selectedItem == 'todo' 
-              ? unCompletedData [index]['description']
-              : completedData[index]['description']
-            );
-          },
-          separatorBuilder: (context, index) {
-            return const SizedBox(
-              height: 5,
-            );
-          },
-          itemCount: selectedItem == 'todo'
-              ? unCompletedData.length
-              : completedData.length),
+      body: LayoutBuilder(builder: (context, constraints) {
+        if (constraints.maxWidth > 600) {
+          return Row(
+            children: [
+              SizedBox(
+                width: constraints.maxWidth/2,
+                height: MediaQuery.of(context).size.height,
+                child: TodoListViewWidget(
+            selectedItem: selectedItem,
+            unCompletedData: unCompletedData,
+            completedData: completedData),
+              ),
+            Expanded(
+              child: Container(
+                 
+                color: Colors.red,
+              ),
+            )
+            ],
+          );
+        }
+        return TodoListViewWidget(
+            selectedItem: selectedItem,
+            unCompletedData: unCompletedData,
+            completedData: completedData);
+      }),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
           child: InkWell(
             onTap: () {
-              showBarModalBottomSheet(context: context, 
-              builder: (context){
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemBuilder: (context,index){
-                    return TaskCardWidget(
-                      dateTime: completedData[index]['date_time'],
-                      description: completedData[index]['description'],
-                      title: completedData[index]['title'],
-                    );
-                  }, 
-                separatorBuilder: (context,index) {
-                  return const SizedBox(height: 5,);
-                }, 
-                itemCount: completedData.length);
-              });
+              showBarModalBottomSheet(
+                  context: context,
+                  builder: (context) {
+                    return ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemBuilder: (context, index) {
+                          return TaskCardWidget(
+                            dateTime: completedData[index]['date_time'],
+                            description: completedData[index]['description'],
+                            title: completedData[index]['title'],
+                          );
+                        },
+                        separatorBuilder: (context, index) {
+                          return const SizedBox(
+                            height: 5,
+                          );
+                        },
+                        itemCount: completedData.length);
+                  });
             },
             child: Material(
               borderRadius: BorderRadius.circular(10),
@@ -196,25 +199,69 @@ class _HomeViewState extends State<HomeView> {
   }
 }
 
+class TodoListViewWidget extends StatelessWidget {
+  const TodoListViewWidget({
+    Key? key,
+    required this.selectedItem,
+    required this.unCompletedData,
+    required this.completedData,
+  }) : super(key: key);
+
+  final String selectedItem;
+  final List<Map<String, dynamic>> unCompletedData;
+  final List<Map<String, dynamic>> completedData;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+     // shrinkWrap: true,
+      scrollDirection: Axis.vertical,
+        padding: const EdgeInsets.all(16),
+        itemBuilder: (context, index) {
+          return TaskCardWidget(
+              dateTime: selectedItem == 'todo'
+                  ? unCompletedData[index]['date_time']
+                  : completedData[index]['date_time'],
+
+              //title
+              title: selectedItem == 'todo'
+                  ? unCompletedData[index]['title']
+                  : completedData[index]['title'],
+
+              //description
+              description: selectedItem == 'todo'
+                  ? unCompletedData[index]['description']
+                  : completedData[index]['description']);
+        },
+        separatorBuilder: (context, index) {
+          return const SizedBox(
+            height: 5,
+          );
+        },
+        itemCount: selectedItem == 'todo'
+            ? unCompletedData.length
+            : completedData.length);
+  }
+}
+
 class TaskCardWidget extends StatelessWidget {
-  const TaskCardWidget({Key? key,
-   required this.title, 
-   required this.description, 
-   required this.dateTime}) : super(key: key);
+  const TaskCardWidget(
+      {Key? key,
+      required this.title,
+      required this.description,
+      required this.dateTime})
+      : super(key: key);
 
   final String title;
   final String description;
   final String dateTime;
-
-   
 
   @override
   Widget build(BuildContext context) {
     return Card(
       //color: Colors.lightBlue,
       //margin: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Row(
@@ -223,8 +270,9 @@ class TaskCardWidget extends StatelessWidget {
               Icons.check_circle_outline,
               size: 30,
               color: customColor(
-                  date: dateTime,
-            ),),
+                date: dateTime,
+              ),
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -254,14 +302,12 @@ class TaskCardWidget extends StatelessWidget {
                 Icon(
                   Icons.notifications_outlined,
                   color: customColor(
-                      date: dateTime,
-                ),
+                    date: dateTime,
+                  ),
                 ),
                 Text(
                   dateTime,
-                  style: TextStyle(
-                      color: customColor(
-                          date: dateTime)),
+                  style: TextStyle(color: customColor(date: dateTime)),
                 )
               ],
             )
